@@ -1,0 +1,14 @@
+[module]
+id = "web"
+name = "WebUI"
+version = "0.1.0"
+description = "Web 界面 — 通过浏览器访问 Bugs"
+author = "Bugs Contributors"
+bugs_version = ">=0.1.0"
+native = true
+
+[capabilities]
+channels = ["http"]
+
+[permissions]
+network = ["inbound"]

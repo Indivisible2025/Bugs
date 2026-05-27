@@ -1,0 +1,17 @@
+[module]
+id = "browser"
+name = "浏览器"
+version = "0.1.0"
+description = "基于 Chromium 无头模式，提供真实网页搜索和内容提取能力"
+author = "Bugs Contributors"
+bugs_version = ">=0.1.0"
+native = true
+
+[capabilities]
+tools = ["browser"]
+
+[permissions]
+network = ["outbound"]
+
+[config]
+CHROME_PATH = { env = "CHROME_PATH", description = "Chromium/Chrome 可执行文件路径" }

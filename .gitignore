@@ -1,0 +1,17 @@
+target/
+release/
+*.tar.zst
+*.zip
+.env
+.auth.json
+*.log
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

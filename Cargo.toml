@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "src/core",
+    "src/api",
+    "src/tui",
+    "src/cli",
+    "modules/models",
+    "modules/browser",
+    "modules/weixin",
+    "modules/gui",
+    "modules/web",
+]
+
+[workspace.package]
+version = "0.1.0-dev.1"
+edition = "2021"
+# License: dual-license structure
+#   src/core, src/api, src/cli → AGPL-3.0-only
+#   src/tui, modules/* → MIT
+# See LICENSE.md for details
+authors = ["Bugs Contributors"]
+repository = "https://github.com/bugs-ai/bugs"
+description = "Like Starship Troopers' Arachnids — efficient AI Agent swarm"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true

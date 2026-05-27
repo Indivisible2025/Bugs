@@ -1,0 +1,16 @@
+[module]
+id = "models"
+name = "模型提供商"
+version = "0.1.0"
+description = "统一 AI 模型提供商模块 — 14 个 Provider，每个独立 .rs 文件"
+author = "Bugs Contributors"
+bugs_version = ">=0.1.0"
+native = true
+
+[capabilities]
+tools = ["text-inference"]
+
+[providers]
+list = ["openai", "anthropic", "deepseek", "moonshot", "minimax",
+        "zhipu", "alibaba", "qianfan", "google", "cohere",
+        "baichuan", "stepfun", "tencent", "byteplus"]

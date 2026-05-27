@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bugs Overmind</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar">
+    <div class="sidebar-header">🧠 Overmind</div>
+    <div class="nav-item active" data-panel="chat">💬 对话</div>
+    <div class="nav-item" data-panel="scenes">📋 场景</div>
+    <div class="nav-item" data-panel="trust">🔐 信任</div>
+    <div class="nav-item" data-panel="status">📊 状态</div>
+    <div class="sidebar-footer">v0.1.0 · <a href="#" id="refresh-link">🔄</a></div>
+  </nav>
+  <main id="main">
+    <div id="panel-chat" class="panel active">
+      <div class="chat-header">💬 Overmind · 星空虫族</div>
+      <div id="messages"></div>
+      <div class="input-bar">
+        <input id="chat-input" type="text" placeholder="输入消息... (Enter发送)" autofocus>
+      </div>
+    </div>
+    <div id="panel-scenes" class="panel">
+      <h2>📋 场景管理</h2>
+      <div id="scene-list"></div>
+    </div>
+    <div id="panel-trust" class="panel">
+      <h2>🔐 信任引擎</h2>
+      <div id="trust-list"></div>
+      <button onclick="fetchTrust()">🔄 刷新</button>
+    </div>
+    <div id="panel-status" class="panel">
+      <h2>📊 系统状态</h2>
+      <pre id="status-text"></pre>
+      <button onclick="fetchStatus()">🔄 刷新</button>
+    </div>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

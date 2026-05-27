@@ -1,0 +1,11 @@
+[module]
+id = "gui"
+name = "GUI桌面"
+version = "0.1.0"
+description = "桌面图形界面 — egui 原生窗口"
+author = "Bugs Contributors"
+bugs_version = ">=0.1.0"
+native = true
+
+[permissions]
+network = ["outbound"]

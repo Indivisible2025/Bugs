@@ -1,0 +1,22 @@
+[module]
+name = "weixin"
+version = "0.1.0"
+description = "微信个人号渠道模块 — 通过微信官方 API 接入个人微信"
+author = "Bugs Contributors"
+bugs_version = ">=0.1.0"
+native = true
+
+[capabilities]
+channels = ["wechat-personal"]
+
+[permissions]
+network = ["outbound"]
+
+[config]
+WEIXIN_APP_ID = { env = "WEIXIN_APP_ID", description = "微信 AppID" }
+WEIXIN_APP_SECRET = { env = "WEIXIN_APP_SECRET", description = "微信 AppSecret" }
+WEIXIN_TOKEN = { env = "WEIXIN_TOKEN", description = "消息校验 Token" }
+WEIXIN_AES_KEY = { env = "WEIXIN_AES_KEY", description = "消息加解密 Key" }
+
+[commands]
+install = "引导用户完成微信渠道配置：AppID/Secret → 回调 URL → 验证 → 上线"

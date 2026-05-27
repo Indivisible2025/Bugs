@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo build --workspace --exclude bugs-gui --exclude bugs-web
+      - run: cargo test --workspace --exclude bugs-gui --exclude bugs-web
+      - run: cargo build --release --workspace --exclude bugs-gui --exclude bugs-web
