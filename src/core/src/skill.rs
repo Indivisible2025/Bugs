@@ -23,23 +23,31 @@ impl Skill {
         let name = path.file_stem()?.to_str()?.to_string();
 
         // 解析 YAML frontmatter (--- 之间的内容)
-        let (frontmatter, instructions) = if content.starts_with("---") {
-            if let Some(end) = content[3..].find("---") {
-                let fm = &content[3..3+end];
-                let body = &content[3+end+3..];
+        let (frontmatter, instructions) = if let Some(rest) = content.strip_prefix("---") {
+            if let Some(end) = rest.find("---") {
+                let fm = &rest[..end];
+                let body = &rest[end + 3..];
                 (fm.to_string(), body.to_string())
-            } else { (String::new(), content) }
-        } else { (String::new(), content) };
+            } else {
+                (String::new(), content)
+            }
+        } else {
+            (String::new(), content)
+        };
 
-        let desc = frontmatter.lines()
+        let desc = frontmatter
+            .lines()
             .find(|l| l.starts_with("description:"))
             .and_then(|l| l.split(':').nth(1))
             .map(|s| s.trim().trim_matches('"').to_string())
             .unwrap_or_default();
 
         Some(Self {
-            name, description: desc, instructions,
-            requires: vec![], os: None,
+            name,
+            description: desc,
+            instructions,
+            requires: vec![],
+            os: None,
         })
     }
 }
@@ -50,7 +58,11 @@ pub struct SkillRegistry {
 }
 
 impl SkillRegistry {
-    pub fn new() -> Self { Self { skills: HashMap::new() } }
+    pub fn new() -> Self {
+        Self {
+            skills: HashMap::new(),
+        }
+    }
 
     pub fn load_from_dir(&mut self, dir: &Path) {
         if let Ok(entries) = std::fs::read_dir(dir) {
@@ -65,11 +77,19 @@ impl SkillRegistry {
         }
     }
 
-    pub fn get(&self, name: &str) -> Option<&Skill> { self.skills.get(name) }
-    pub fn list(&self) -> Vec<&Skill> { self.skills.values().collect() }
+    pub fn get(&self, name: &str) -> Option<&Skill> {
+        self.skills.get(name)
+    }
+    pub fn list(&self) -> Vec<&Skill> {
+        self.skills.values().collect()
+    }
 }
 
-impl Default for SkillRegistry { fn default() -> Self { Self::new() } }
+impl Default for SkillRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[cfg(test)]
 mod tests {

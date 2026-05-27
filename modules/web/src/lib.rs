@@ -1,5 +1,11 @@
+use axum::{
+    body::Body,
+    extract::Path,
+    response::{Html, IntoResponse, Response},
+    routing::{get, post},
+    Router,
+};
 use std::sync::Arc;
-use axum::{Router, routing::{get, post}, response::{Html, IntoResponse, Response}, body::Body, extract::Path};
 
 const INDEX_HTML: &str = include_str!("../static/index.html");
 const STYLE_CSS: &str = include_str!("../static/style.css");
@@ -25,24 +31,64 @@ pub async fn start(port: u16, daemon_port: u16) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-async fn root() -> impl IntoResponse { Html(INDEX_HTML) }
-async fn css() -> impl IntoResponse { ([(axum::http::header::CONTENT_TYPE, "text/css;charset=utf-8")], STYLE_CSS) }
-async fn js() -> impl IntoResponse { ([(axum::http::header::CONTENT_TYPE, "application/javascript;charset=utf-8")], APP_JS) }
+async fn root() -> impl IntoResponse {
+    Html(INDEX_HTML)
+}
+async fn css() -> impl IntoResponse {
+    (
+        [(axum::http::header::CONTENT_TYPE, "text/css;charset=utf-8")],
+        STYLE_CSS,
+    )
+}
+async fn js() -> impl IntoResponse {
+    (
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "application/javascript;charset=utf-8",
+        )],
+        APP_JS,
+    )
+}
 
 type AppState = (Arc<reqwest::Client>, String);
 
-async fn api_get(Path(path): Path<String>, axum::extract::State(state): axum::extract::State<AppState>) -> Response<Body> {
+async fn api_get(
+    Path(path): Path<String>,
+    axum::extract::State(state): axum::extract::State<AppState>,
+) -> Response<Body> {
     let (client, prefix) = &state;
     match client.get(format!("{prefix}/{path}")).send().await {
-        Ok(r) => Response::builder().status(r.status()).body(Body::from(r.text().await.unwrap_or_default())).unwrap(),
-        Err(_) => Response::builder().status(502).body(Body::from("{\"error\":\"unreachable\"}")).unwrap(),
+        Ok(r) => Response::builder()
+            .status(r.status())
+            .body(Body::from(r.text().await.unwrap_or_default()))
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(502)
+            .body(Body::from("{\"error\":\"unreachable\"}"))
+            .unwrap(),
     }
 }
 
-async fn api_post(Path(path): Path<String>, axum::extract::State(state): axum::extract::State<AppState>, body: String) -> Response<Body> {
+async fn api_post(
+    Path(path): Path<String>,
+    axum::extract::State(state): axum::extract::State<AppState>,
+    body: String,
+) -> Response<Body> {
     let (client, prefix) = &state;
-    match client.post(format!("{prefix}/{path}")).header("content-type", "application/json").body(body).send().await {
-        Ok(r) => Response::builder().status(r.status()).body(Body::from(r.text().await.unwrap_or_default())).unwrap(),
-        Err(_) => Response::builder().status(502).body(Body::from("{\"error\":\"unreachable\"}")).unwrap(),
+    match client
+        .post(format!("{prefix}/{path}"))
+        .header("content-type", "application/json")
+        .body(body)
+        .send()
+        .await
+    {
+        Ok(r) => Response::builder()
+            .status(r.status())
+            .body(Body::from(r.text().await.unwrap_or_default()))
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(502)
+            .body(Body::from("{\"error\":\"unreachable\"}"))
+            .unwrap(),
     }
 }

@@ -20,8 +20,19 @@ pub enum MinimaxAuthMode {
 
 impl MinimaxProvider {
     /// 通用构造函数
-    pub fn new(name: impl Into<String>, base_url: impl Into<String>, api_key: impl Into<String>, auth_mode: MinimaxAuthMode) -> Self {
-        Self { name: name.into(), base_url: base_url.into(), api_key: api_key.into(), auth_mode, client: reqwest::Client::new() }
+    pub fn new(
+        name: impl Into<String>,
+        base_url: impl Into<String>,
+        api_key: impl Into<String>,
+        auth_mode: MinimaxAuthMode,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            base_url: base_url.into(),
+            api_key: api_key.into(),
+            auth_mode,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// 国际版 Token 认证
@@ -95,7 +106,8 @@ impl LlmProvider for MinimaxProvider {
             MinimaxAuthMode::Auth => self.api_key.clone(),
         };
 
-        let resp = self.client
+        let resp = self
+            .client
             .post(&url)
             .header("Authorization", &auth_value)
             .json(&body)
@@ -109,7 +121,9 @@ impl LlmProvider for MinimaxProvider {
             return Err(ModelError::ApiError(format!("HTTP {}: {}", status, text)));
         }
 
-        let data: serde_json::Value = resp.json().await
+        let data: serde_json::Value = resp
+            .json()
+            .await
             .map_err(|e| ModelError::ApiError(e.to_string()))?;
 
         let content = data["choices"][0]["message"]["content"]
@@ -117,14 +131,19 @@ impl LlmProvider for MinimaxProvider {
             .unwrap_or("")
             .to_string();
 
-        Ok(ChatResponse { reasoning_content: None,
+        Ok(ChatResponse {
+            reasoning_content: None,
             content,
-            finish_reason: data["choices"][0]["finish_reason"].as_str().map(|s| s.to_string()),
+            finish_reason: data["choices"][0]["finish_reason"]
+                .as_str()
+                .map(|s| s.to_string()),
             usage: None,
         })
     }
 
-    fn name(&self) -> &str { &self.name }
+    fn name(&self) -> &str {
+        &self.name
+    }
     fn supports(&self, model: &str) -> bool {
         model.starts_with("abab") || model.starts_with("minimax") || model.starts_with("MiniMax")
     }
@@ -146,8 +165,14 @@ impl LlmProvider for MinimaxProvider {
             MinimaxAuthMode::Auth => self.api_key.clone(),
         };
 
-        let resp = self.client.post(&url).header("Authorization", &auth_value).json(&body)
-            .send().await.map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
+        let resp = self
+            .client
+            .post(&url)
+            .header("Authorization", &auth_value)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
         if !resp.status().is_success() {
             return Err(ModelError::ApiError(format!("HTTP {}", resp.status())));
         }
@@ -160,22 +185,37 @@ impl LlmProvider for MinimaxProvider {
                     Ok(bytes) => {
                         for line in String::from_utf8_lossy(&bytes).lines() {
                             let line = line.trim();
-                            if line.is_empty() || line == "data: [DONE]" { continue; }
+                            if line.is_empty() || line == "data: [DONE]" {
+                                continue;
+                            }
                             if let Some(j) = line.strip_prefix("data: ") {
                                 if let Ok(d) = serde_json::from_str::<serde_json::Value>(j) {
-                                    let c = d["choices"][0]["delta"]["content"].as_str().unwrap_or("").to_string();
-                                    let f = d["choices"][0]["finish_reason"].as_str().map(|s| s.to_string());
-                                    let _ = tx.send(Ok(StreamChunk { content: c, finish_reason: f }));
+                                    let c = d["choices"][0]["delta"]["content"]
+                                        .as_str()
+                                        .unwrap_or("")
+                                        .to_string();
+                                    let f = d["choices"][0]["finish_reason"]
+                                        .as_str()
+                                        .map(|s| s.to_string());
+                                    let _ = tx.send(Ok(StreamChunk {
+                                        content: c,
+                                        finish_reason: f,
+                                    }));
                                 }
                             }
                         }
                     }
-                    Err(e) => { let _ = tx.send(Err(ModelError::ConnectionFailed(e.to_string()))); break; }
+                    Err(e) => {
+                        let _ = tx.send(Err(ModelError::ConnectionFailed(e.to_string())));
+                        break;
+                    }
                 }
             }
         });
         Ok(Box::new(UnboundedReceiverStream::new(rx)))
     }
 
-    fn api_type(&self) -> ApiType { ApiType::OpenAiCompat }
+    fn api_type(&self) -> ApiType {
+        ApiType::OpenAiCompat
+    }
 }

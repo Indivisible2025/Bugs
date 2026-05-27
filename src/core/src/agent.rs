@@ -37,7 +37,10 @@ pub enum AgentKind {
 impl Overmind {
     pub fn new() -> Self {
         Self {
-            identity: AgentIdentity { name: "Overmind".into(), kind: AgentKind::Main },
+            identity: AgentIdentity {
+                name: "Overmind".into(),
+                kind: AgentKind::Main,
+            },
             scene: None,
             model: "gpt-4o-mini".into(),
             provider: None,
@@ -55,8 +58,15 @@ impl Overmind {
     }
 
     /// 分析用户输入，分裂为子任务列表
-    pub async fn decompose(&self, input: &str, messages: &[Message]) -> Result<Vec<String>, ModelError> {
-        let provider = self.provider.as_ref().ok_or(ModelError::ModelUnavailable("无 Provider".into()))?;
+    pub async fn decompose(
+        &self,
+        input: &str,
+        messages: &[Message],
+    ) -> Result<Vec<String>, ModelError> {
+        let provider = self
+            .provider
+            .as_ref()
+            .ok_or(ModelError::ModelUnavailable("无 Provider".into()))?;
 
         // 构建分解提示
         let mut ctx = messages.to_vec();
@@ -65,18 +75,25 @@ impl Overmind {
             content: format!("将以下用户需求分解为可并行执行的子任务列表。每行一个子任务，不要编号。\n\n用户需求：{input}\n\n子任务："),
         });
 
-        let resp = provider.chat(ChatRequest {
-            model: self.model.clone(),
-            messages: ctx,
-            temperature: Some(0.3),
-            max_tokens: Some(512),
-            ..Default::default()
-        }).await?;
+        let resp = provider
+            .chat(ChatRequest {
+                model: self.model.clone(),
+                messages: ctx,
+                temperature: Some(0.3),
+                max_tokens: Some(512),
+                ..Default::default()
+            })
+            .await?;
 
         // 按行分割
-        let subtasks: Vec<String> = resp.content
+        let subtasks: Vec<String> = resp
+            .content
             .lines()
-            .map(|l| l.trim().trim_start_matches(|c: char| c.is_numeric() || c == '.' || c == '-' || c == ' '))
+            .map(|l| {
+                l.trim().trim_start_matches(|c: char| {
+                    c.is_numeric() || c == '.' || c == '-' || c == ' '
+                })
+            })
             .filter(|l| !l.is_empty())
             .map(|s| s.to_string())
             .collect();
@@ -125,16 +142,19 @@ impl Overmind {
                 None => break,
             };
 
-            let result = match provider.chat(ChatRequest {
-                model: self.model.clone(),
-                messages: vec![Message {
-                    role: Role::User,
-                    content: task.description.clone(),
-                }],
-                temperature: Some(0.7),
-                max_tokens: Some(4096),
-                ..Default::default()
-            }).await {
+            let result = match provider
+                .chat(ChatRequest {
+                    model: self.model.clone(),
+                    messages: vec![Message {
+                        role: Role::User,
+                        content: task.description.clone(),
+                    }],
+                    temperature: Some(0.7),
+                    max_tokens: Some(4096),
+                    ..Default::default()
+                })
+                .await
+            {
                 Ok(resp) => resp.content,
                 Err(e) => format!("✗ 执行失败: {e}"),
             };
@@ -167,7 +187,9 @@ impl Overmind {
 }
 
 impl Default for Overmind {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(Debug, Clone)]

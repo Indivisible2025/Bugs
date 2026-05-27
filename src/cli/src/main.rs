@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use bugs_core::types::BugsConfig;
 use std::process::{Command, Stdio};
 
 #[derive(Parser)]
@@ -32,12 +31,12 @@ fn main() {
 
     match cli.command.unwrap_or(Commands::Chat) {
         Commands::Start => daemon_cmd("start"),
-        Commands::Stop  => daemon_cmd("stop"),
+        Commands::Stop => daemon_cmd("stop"),
         Commands::Status => daemon_cmd("status"),
-        Commands::Tui   => frontend("bugs-tui"),
-        Commands::Web   => frontend("bugs-web"),
-        Commands::Gui   => frontend("bugs-gui"),
-        Commands::Chat  => chat_mode(),
+        Commands::Tui => frontend("bugs-tui"),
+        Commands::Web => frontend("bugs-web"),
+        Commands::Gui => frontend("bugs-gui"),
+        Commands::Chat => chat_mode(),
     }
 }
 
@@ -48,7 +47,10 @@ fn daemon_cmd(action: &str) {
                 eprintln!("bugs-daemon 已在运行");
                 return;
             }
-            let child = Command::new("bugs-daemon").stdout(Stdio::null()).stderr(Stdio::null()).spawn();
+            let child = Command::new("bugs-daemon")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn();
             match child {
                 Ok(_) => println!("✅ bugs-daemon 已启动"),
                 Err(e) => eprintln!("❌ 无法启动 bugs-daemon: {e}"),
@@ -80,13 +82,21 @@ fn frontend(bin: &str) {
     }
     let status = Command::new(bin).spawn();
     match status {
-        Ok(mut child) => { let _ = child.wait(); }
+        Ok(mut child) => {
+            let _ = child.wait();
+        }
         Err(_) => eprintln!("❌ 无法启动 {bin}，请确认已安装"),
     }
 }
 
 fn daemon_running() -> bool {
-    Command::new("pgrep").arg("bugs-daemon").stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s| s.success()).unwrap_or(false)
+    Command::new("pgrep")
+        .arg("bugs-daemon")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
 
 fn chat_mode() {
@@ -103,17 +113,28 @@ fn chat_mode() {
         use std::io::Write;
         std::io::stdout().flush().unwrap();
         input.clear();
-        if std::io::stdin().read_line(&mut input).is_err() { break; }
+        if std::io::stdin().read_line(&mut input).is_err() {
+            break;
+        }
         let input = input.trim();
-        if input == "/exit" { break; }
-        if input.is_empty() { continue; }
+        if input == "/exit" {
+            break;
+        }
+        if input.is_empty() {
+            continue;
+        }
         let client = reqwest::blocking::Client::new();
-        match client.post("http://127.0.0.1:8742/api/chat")
+        match client
+            .post("http://127.0.0.1:8742/api/chat")
             .json(&serde_json::json!({"messages":[{"role":"user","content":input}]}))
-            .send() {
+            .send()
+        {
             Ok(resp) => {
                 if let Ok(body) = resp.json::<serde_json::Value>() {
-                    println!("\n{}", body["content"].as_str().unwrap_or(&body.to_string()));
+                    println!(
+                        "\n{}",
+                        body["content"].as_str().unwrap_or(&body.to_string())
+                    );
                     println!();
                 }
             }

@@ -75,13 +75,16 @@ impl TrustEngine {
 
     /// 注册新来源
     pub fn register_source(&self, source_id: u64) {
-        self.sources.write().entry(source_id).or_insert(TrustSource {
-            agent_id: source_id,
-            credibility: 1.0,
-            last_validated: now_timestamp(),
-            wrong_validations: 0,
-            correct_validations: 0,
-        });
+        self.sources
+            .write()
+            .entry(source_id)
+            .or_insert(TrustSource {
+                agent_id: source_id,
+                credibility: 1.0,
+                last_validated: now_timestamp(),
+                wrong_validations: 0,
+                correct_validations: 0,
+            });
     }
 }
 
@@ -116,14 +119,20 @@ mod tests {
 
     fn make_test_memory() -> Memory {
         Memory {
-            agent_id: 1, scene_id: 1, scope: MemoryScope::All,
+            agent_id: 1,
+            scene_id: 1,
+            scope: MemoryScope::All,
             owners: vec![OwnerId::All],
             category: MemoryCategory::Knowledge,
             subagent_type: SubAgentType::General,
-            enhancement_rate: 0.0, decay_rate: 0.1,
+            enhancement_rate: 0.0,
+            decay_rate: 0.1,
             strength_cached: 0.0,
-            last_updated: 0, last_validated: 0,
-            validation_count: 0, source_count: 0, seq: 0,
+            last_updated: 0,
+            last_validated: 0,
+            validation_count: 0,
+            source_count: 0,
+            seq: 0,
         }
     }
 

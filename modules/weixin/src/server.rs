@@ -1,7 +1,7 @@
 //! 微信回调 HTTP 服务器
 
-use super::{WeixinModule, crypto};
-use axum::{Router, extract::Query, response::IntoResponse, routing::get};
+use super::{crypto, WeixinModule};
+use axum::{extract::Query, response::IntoResponse, routing::get, Router};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::oneshot;
@@ -10,10 +10,16 @@ pub async fn start(module: &WeixinModule) -> Result<(), Box<dyn std::error::Erro
     let port = module.port;
     println!("  📡 微信回调服务器启动: port {port}");
     println!("     回调 URL: http://your-domain:{port}/wechat");
-    println!("     Token: {}", if module.token.is_empty() { "未设置" } else { "已设置" });
+    println!(
+        "     Token: {}",
+        if module.token.is_empty() {
+            "未设置"
+        } else {
+            "已设置"
+        }
+    );
 
-    let app = Router::new()
-        .route("/wechat", get(verify_url));
+    let app = Router::new().route("/wechat", get(verify_url));
 
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}")).await?;
     axum::serve(listener, app).await?;
@@ -25,8 +31,9 @@ pub async fn wait_for_bind(port: u16) -> Result<String, String> {
     let (tx, rx) = oneshot::channel();
     let tx = Arc::new(parking_lot::Mutex::new(Some(tx)));
 
-    let app = Router::new()
-        .route("/wechat/bind", get(move |Query(p): Query<HashMap<String, String>>| {
+    let app = Router::new().route(
+        "/wechat/bind",
+        get(move |Query(p): Query<HashMap<String, String>>| {
             let tx = tx.clone();
             async move {
                 let token = p.get("token").cloned().unwrap_or_default();
@@ -39,9 +46,11 @@ pub async fn wait_for_bind(port: u16) -> Result<String, String> {
                     "❌ 缺少 token 参数"
                 }
             }
-        }));
+        }),
+    );
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}")).await
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}"))
+        .await
         .map_err(|e| format!("端口绑定失败: {e}"))?;
 
     println!("  ⏳ 等待扫码...");
@@ -63,5 +72,9 @@ async fn verify_url(Query(p): Query<HashMap<String, String>>) -> impl IntoRespon
     let ts = p.get("timestamp").cloned().unwrap_or_default();
     let nonce = p.get("nonce").cloned().unwrap_or_default();
     let echo = p.get("echostr").cloned().unwrap_or_default();
-    if crypto::verify_signature(&token, &ts, &nonce, &sig) { echo } else { "fail".into() }
+    if crypto::verify_signature(&token, &ts, &nonce, &sig) {
+        echo
+    } else {
+        "fail".into()
+    }
 }

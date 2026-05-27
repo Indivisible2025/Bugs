@@ -12,14 +12,23 @@ pub struct ConfigWatcher {
 
 impl ConfigWatcher {
     pub fn new(path: PathBuf) -> Self {
-        Self { path, last_modified: None, last_check: Instant::now(), interval: Duration::from_secs(2) }
+        Self {
+            path,
+            last_modified: None,
+            last_check: Instant::now(),
+            interval: Duration::from_secs(2),
+        }
     }
 
     /// 检测配置是否已变更
     pub fn has_changed(&mut self) -> bool {
-        if self.last_check.elapsed() < self.interval { return false; }
+        if self.last_check.elapsed() < self.interval {
+            return false;
+        }
         self.last_check = Instant::now();
-        let modified = std::fs::metadata(&self.path).ok().and_then(|m| m.modified().ok());
+        let modified = std::fs::metadata(&self.path)
+            .ok()
+            .and_then(|m| m.modified().ok());
         if modified != self.last_modified {
             self.last_modified = modified;
             return true;

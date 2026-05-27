@@ -77,7 +77,10 @@ impl Scheduler {
                 RwLock::new(VecDeque::new()),
             ],
             subagents: RwLock::new(HashMap::new()),
-            limits: ConcurrencyLimits { global_max, per_scene_max },
+            limits: ConcurrencyLimits {
+                global_max,
+                per_scene_max,
+            },
             capacity: CapacityGate::new(global_max),
             next_id: std::sync::atomic::AtomicU64::new(1),
             next_agent_id: std::sync::atomic::AtomicU64::new(1),
@@ -86,7 +89,9 @@ impl Scheduler {
 
     /// 入队一个任务——O(1)，按优先级入桶
     pub fn enqueue(&self, mut task: Task) {
-        task.id = self.next_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        task.id = self
+            .next_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let priority = task.priority;
         task.state = TaskState::Queued;
 
@@ -101,7 +106,7 @@ impl Scheduler {
 
     /// 出队一个任务——O(k)，k=桶数(5)
     pub fn dequeue(&self) -> Option<Task> {
-        for (_idx, bucket) in self.buckets.iter().enumerate() {
+        for bucket in self.buckets.iter() {
             let mut queue = bucket.write();
             if let Some(qt) = queue.pop_front() {
                 return Some(qt.task);
@@ -134,14 +139,25 @@ impl Scheduler {
 
     /// 注册子Agent
     pub fn register_subagent(&self) -> u64 {
-        let id = self.next_agent_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        self.subagents.write().insert(id, SubAgentInfo {
-            id, state: SubAgentState::Idle, current_tasks: 0, max_concurrent: 8,
-            started_at: Instant::now(), last_heartbeat: Instant::now(),
-            total_completed: 0, total_failed: 0,
-            avg_completion_time: Duration::ZERO,
-            loaded_resources: vec![], recent_task_types: vec![],
-        });
+        let id = self
+            .next_agent_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.subagents.write().insert(
+            id,
+            SubAgentInfo {
+                id,
+                state: SubAgentState::Idle,
+                current_tasks: 0,
+                max_concurrent: 8,
+                started_at: Instant::now(),
+                last_heartbeat: Instant::now(),
+                total_completed: 0,
+                total_failed: 0,
+                avg_completion_time: Duration::ZERO,
+                loaded_resources: vec![],
+                recent_task_types: vec![],
+            },
+        );
         id
     }
 
@@ -166,7 +182,10 @@ impl Scheduler {
         SchedulerStatus {
             queued_tasks: total_tasks,
             active_subagents: agents.len(),
-            idle_subagents: agents.values().filter(|a| a.state == SubAgentState::Idle).count(),
+            idle_subagents: agents
+                .values()
+                .filter(|a| a.state == SubAgentState::Idle)
+                .count(),
         }
     }
 }
@@ -206,7 +225,11 @@ fn priority_to_bucket(p: Priority) -> usize {
 
 fn priority_to_bucket_index(p: u8) -> usize {
     match p {
-        0 => 0, 1..=3 => 1, 4..=7 => 2, 8..=15 => 3, _ => 4,
+        0 => 0,
+        1..=3 => 1,
+        4..=7 => 2,
+        8..=15 => 3,
+        _ => 4,
     }
 }
 
@@ -216,10 +239,18 @@ mod tests {
 
     fn make_task(priority: Priority) -> Task {
         Task {
-            id: 0, scene_id: 1, priority, kind: TaskKind::Reasoning,
-            state: TaskState::Pending, retry_count: 0, max_retries: 3,
-            timeout: Duration::from_secs(30), assigned_to: None,
-            created_at: 0, tags: vec![], description: String::new(),
+            id: 0,
+            scene_id: 1,
+            priority,
+            kind: TaskKind::Reasoning,
+            state: TaskState::Pending,
+            retry_count: 0,
+            max_retries: 3,
+            timeout: Duration::from_secs(30),
+            assigned_to: None,
+            created_at: 0,
+            tags: vec![],
+            description: String::new(),
         }
     }
 

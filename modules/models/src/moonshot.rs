@@ -13,7 +13,12 @@ pub struct MoonshotProvider {
 
 impl MoonshotProvider {
     pub fn new(api_key: impl Into<String>) -> Self {
-        Self { name: "moonshot".into(), base_url: "https://api.moonshot.cn/v1".into(), api_key: api_key.into(), client: reqwest::Client::new() }
+        Self {
+            name: "moonshot".into(),
+            base_url: "https://api.moonshot.cn/v1".into(),
+            api_key: api_key.into(),
+            client: reqwest::Client::new(),
+        }
     }
 
     fn build_body(&self, req: &ChatRequest) -> serde_json::Value {
@@ -42,13 +47,29 @@ impl MoonshotProvider {
 impl LlmProvider for MoonshotProvider {
     async fn chat(&self, req: ChatRequest) -> Result<ChatResponse, ModelError> {
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
-        let resp = self.client.post(&url).header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&self.build_body(&req)).send().await.map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
-        if !resp.status().is_success() { return Err(ModelError::ApiError(format!("HTTP {}", resp.status()))); }
-        let data: serde_json::Value = resp.json().await.map_err(|e| ModelError::ApiError(e.to_string()))?;
+        let resp = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&self.build_body(&req))
+            .send()
+            .await
+            .map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
+        if !resp.status().is_success() {
+            return Err(ModelError::ApiError(format!("HTTP {}", resp.status())));
+        }
+        let data: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| ModelError::ApiError(e.to_string()))?;
         Ok(ChatResponse {
-            content: data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string(),
-            reasoning_content: None, finish_reason: None, usage: None,
+            content: data["choices"][0]["message"]["content"]
+                .as_str()
+                .unwrap_or("")
+                .to_string(),
+            reasoning_content: None,
+            finish_reason: None,
+            usage: None,
         })
     }
 
@@ -56,9 +77,17 @@ impl LlmProvider for MoonshotProvider {
         let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let mut body = self.build_body(&req);
         body["stream"] = serde_json::json!(true);
-        let resp = self.client.post(&url).header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&body).send().await.map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
-        if !resp.status().is_success() { return Err(ModelError::ApiError(format!("HTTP {}", resp.status()))); }
+        let resp = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ModelError::ConnectionFailed(e.to_string()))?;
+        if !resp.status().is_success() {
+            return Err(ModelError::ApiError(format!("HTTP {}", resp.status())));
+        }
 
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         let mut stream = resp.bytes_stream();
@@ -68,24 +97,43 @@ impl LlmProvider for MoonshotProvider {
                     Ok(bytes) => {
                         for line in String::from_utf8_lossy(&bytes).lines() {
                             let line = line.trim();
-                            if line.is_empty() || line == "data: [DONE]" { continue; }
+                            if line.is_empty() || line == "data: [DONE]" {
+                                continue;
+                            }
                             if let Some(j) = line.strip_prefix("data: ") {
                                 if let Ok(d) = serde_json::from_str::<serde_json::Value>(j) {
-                                    let c = d["choices"][0]["delta"]["content"].as_str().unwrap_or("").to_string();
-                                    let f = d["choices"][0]["finish_reason"].as_str().map(|s| s.to_string());
-                                    let _ = tx.send(Ok(StreamChunk { content: c, finish_reason: f }));
+                                    let c = d["choices"][0]["delta"]["content"]
+                                        .as_str()
+                                        .unwrap_or("")
+                                        .to_string();
+                                    let f = d["choices"][0]["finish_reason"]
+                                        .as_str()
+                                        .map(|s| s.to_string());
+                                    let _ = tx.send(Ok(StreamChunk {
+                                        content: c,
+                                        finish_reason: f,
+                                    }));
                                 }
                             }
                         }
                     }
-                    Err(e) => { let _ = tx.send(Err(ModelError::ConnectionFailed(e.to_string()))); break; }
+                    Err(e) => {
+                        let _ = tx.send(Err(ModelError::ConnectionFailed(e.to_string())));
+                        break;
+                    }
                 }
             }
         });
         Ok(Box::new(UnboundedReceiverStream::new(rx)))
     }
 
-    fn name(&self) -> &str { &self.name }
-    fn supports(&self, m: &str) -> bool { m.starts_with("kimi-") || m.starts_with("moonshot-") }
-    fn api_type(&self) -> ApiType { ApiType::OpenAiCompat }
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn supports(&self, m: &str) -> bool {
+        m.starts_with("kimi-") || m.starts_with("moonshot-")
+    }
+    fn api_type(&self) -> ApiType {
+        ApiType::OpenAiCompat
+    }
 }

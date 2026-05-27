@@ -36,48 +36,69 @@ impl SearchRegistry {
         let mut engines = HashMap::new();
 
         // Bing（默认——国内外都可用）
-        engines.insert("bing".into(), SearchEngine {
-            name: "Bing".into(),
-            url_template: "https://www.bing.com/search?q={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "bing".into(),
+            SearchEngine {
+                name: "Bing".into(),
+                url_template: "https://www.bing.com/search?q={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
         // Google
-        engines.insert("google".into(), SearchEngine {
-            name: "Google".into(),
-            url_template: "https://www.google.com/search?q={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "google".into(),
+            SearchEngine {
+                name: "Google".into(),
+                url_template: "https://www.google.com/search?q={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
         // 百度
-        engines.insert("baidu".into(), SearchEngine {
-            name: "百度".into(),
-            url_template: "https://www.baidu.com/s?wd={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "baidu".into(),
+            SearchEngine {
+                name: "百度".into(),
+                url_template: "https://www.baidu.com/s?wd={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
         // DuckDuckGo
-        engines.insert("duckduckgo".into(), SearchEngine {
-            name: "DuckDuckGo".into(),
-            url_template: "https://duckduckgo.com/?q={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "duckduckgo".into(),
+            SearchEngine {
+                name: "DuckDuckGo".into(),
+                url_template: "https://duckduckgo.com/?q={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
         // 必应中国
-        engines.insert("bing-cn".into(), SearchEngine {
-            name: "Bing 中国".into(),
-            url_template: "https://cn.bing.com/search?q={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "bing-cn".into(),
+            SearchEngine {
+                name: "Bing 中国".into(),
+                url_template: "https://cn.bing.com/search?q={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
         // SearXNG（自部署，隐私优先）
-        engines.insert("searxng".into(), SearchEngine {
-            name: "SearXNG".into(),
-            url_template: "https://searx.be/search?q={query}".into(),
-            result_extract_js: GENERIC_EXTRACT_JS,
-        });
+        engines.insert(
+            "searxng".into(),
+            SearchEngine {
+                name: "SearXNG".into(),
+                url_template: "https://searx.be/search?q={query}".into(),
+                result_extract_js: GENERIC_EXTRACT_JS,
+            },
+        );
 
-        Self { engines, default_engine: "bing".into() }
+        Self {
+            engines,
+            default_engine: "bing".into(),
+        }
     }
 
     /// 获取引擎
@@ -112,12 +133,15 @@ impl SearchRegistry {
 
     /// 构造搜索 URL
     pub fn build_url(&self, engine: &str, query: &str) -> Option<String> {
-        self.get(engine).map(|e| e.url_template.replace("{query}", &query.replace(' ', "+")))
+        self.get(engine)
+            .map(|e| e.url_template.replace("{query}", &query.replace(' ', "+")))
     }
 }
 
 impl Default for SearchRegistry {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -154,11 +178,14 @@ mod tests {
     #[test]
     fn register_custom_engine() {
         let mut reg = SearchRegistry::new();
-        reg.register("custom".into(), SearchEngine {
-            name: "Custom".into(),
-            url_template: "https://example.com?q={query}".into(),
-            result_extract_js: "",
-        });
+        reg.register(
+            "custom".into(),
+            SearchEngine {
+                name: "Custom".into(),
+                url_template: "https://example.com?q={query}".into(),
+                result_extract_js: "",
+            },
+        );
         assert!(reg.get("custom").is_some());
     }
 }

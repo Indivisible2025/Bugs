@@ -15,7 +15,8 @@ pub trait LlmProvider: Send + Sync {
 }
 
 /// 流式响应——异步 token 迭代器
-pub type ChatStream = Box<dyn tokio_stream::Stream<Item = Result<StreamChunk, ModelError>> + Send + Unpin>;
+pub type ChatStream =
+    Box<dyn tokio_stream::Stream<Item = Result<StreamChunk, ModelError>> + Send + Unpin>;
 
 #[derive(Debug, Clone)]
 pub struct StreamChunk {
@@ -50,17 +51,20 @@ pub struct ChatRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThinkingMode {
     #[serde(rename = "type")]
-    pub mode: String,  // "enabled" | "disabled"
+    pub mode: String, // "enabled" | "disabled"
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum ReasoningEffort { High, Max }
+pub enum ReasoningEffort {
+    High,
+    Max,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatResponse {
     pub content: String,
-    pub reasoning_content: Option<String>,  // DeepSeek thinking CoT
+    pub reasoning_content: Option<String>, // DeepSeek thinking CoT
     pub finish_reason: Option<String>,
     pub usage: Option<Usage>,
 }
@@ -68,9 +72,13 @@ pub struct ChatResponse {
 impl Default for ChatRequest {
     fn default() -> Self {
         Self {
-            model: String::new(), messages: vec![],
-            temperature: Some(0.7), max_tokens: Some(4096),
-            system_prompt: None, thinking: None, reasoning_effort: None,
+            model: String::new(),
+            messages: vec![],
+            temperature: Some(0.7),
+            max_tokens: Some(4096),
+            system_prompt: None,
+            thinking: None,
+            reasoning_effort: None,
         }
     }
 }
@@ -134,7 +142,10 @@ impl ProviderRegistry {
 
     /// 列出所有已注册的 Provider 名称
     pub fn list(&self) -> Vec<String> {
-        self.providers.iter().map(|p| p.name().to_string()).collect()
+        self.providers
+            .iter()
+            .map(|p| p.name().to_string())
+            .collect()
     }
 
     /// 是否有任何 Provider
@@ -157,16 +168,32 @@ mod tests {
     #[async_trait]
     impl LlmProvider for MockProvider {
         async fn chat(&self, _: ChatRequest) -> Result<ChatResponse, ModelError> {
-            Ok(ChatResponse { content: "ok".into(), reasoning_content: None, finish_reason: None, usage: None })
+            Ok(ChatResponse {
+                content: "ok".into(),
+                reasoning_content: None,
+                finish_reason: None,
+                usage: None,
+            })
         }
         async fn chat_stream(&self, _: ChatRequest) -> Result<ChatStream, ModelError> {
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-            let _ = tx.send(Ok(StreamChunk { content: "ok".into(), finish_reason: Some("stop".into()) }));
-            Ok(Box::new(tokio_stream::wrappers::UnboundedReceiverStream::new(rx)))
+            let _ = tx.send(Ok(StreamChunk {
+                content: "ok".into(),
+                finish_reason: Some("stop".into()),
+            }));
+            Ok(Box::new(
+                tokio_stream::wrappers::UnboundedReceiverStream::new(rx),
+            ))
         }
-        fn name(&self) -> &str { "mock" }
-        fn supports(&self, m: &str) -> bool { m == "mock" }
-        fn api_type(&self) -> ApiType { ApiType::OpenAi }
+        fn name(&self) -> &str {
+            "mock"
+        }
+        fn supports(&self, m: &str) -> bool {
+            m == "mock"
+        }
+        fn api_type(&self) -> ApiType {
+            ApiType::OpenAi
+        }
     }
 
     #[tokio::test]

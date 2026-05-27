@@ -1,12 +1,17 @@
 //! Bugs API Daemon — 所有前端的统一后端
 
-use axum::{Json, Router, extract::State, response::IntoResponse, routing::{get, post}};
-use bugs_core::models::{ChatRequest, Message, ProviderRegistry, Role};
+use axum::{
+    extract::State,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use bugs_core::hotreload::ConfigWatcher;
 use bugs_core::meditate::Meditation;
 use bugs_core::memory::MemoryMesh;
+use bugs_core::models::{ChatRequest, Message, ProviderRegistry, Role};
 use bugs_core::scene::SceneManager;
 use bugs_core::scheduler::cron::CronScheduler;
-use bugs_core::hotreload::ConfigWatcher;
 use bugs_core::skill::SkillRegistry;
 use bugs_core::trust::TrustEngine;
 use bugs_core::types::MemoryConfig;
@@ -30,9 +35,13 @@ async fn main() {
     auto_register(&mut reg);
     let mut skills = SkillRegistry::new();
     let core_skills = std::path::Path::new("core-skills");
-    if core_skills.exists() { skills.load_from_dir(core_skills); }
+    if core_skills.exists() {
+        skills.load_from_dir(core_skills);
+    }
     let home_skills = std::path::Path::new("/home/nianyv/.bugs/skills");
-    if home_skills.exists() { skills.load_from_dir(home_skills); }
+    if home_skills.exists() {
+        skills.load_from_dir(home_skills);
+    }
 
     let state = Arc::new(AppState {
         registry: Arc::new(reg),
@@ -42,8 +51,9 @@ async fn main() {
         scenes: Arc::new(SceneManager::new(200, "general".into())),
         skills: parking_lot::RwLock::new(skills),
         watcher: parking_lot::Mutex::new(ConfigWatcher::new(
-            std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".bugs/config.json"))
-                .unwrap_or_else(|_| std::path::PathBuf::from("config.json"))
+            std::env::var("HOME")
+                .map(|h| std::path::PathBuf::from(h).join(".bugs/config.json"))
+                .unwrap_or_else(|_| std::path::PathBuf::from("config.json")),
         )),
     });
 
@@ -69,9 +79,14 @@ async fn main() {
     tokio::spawn(cron_worker(state));
 
     let port = env_port().unwrap_or(8742);
-    println!("🧠 Bugs Daemon {external} (internal {internal}) — http://127.0.0.1:{port}",
-        external=VERSION_EXTERNAL, internal=VERSION_INTERNAL);
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}")).await.expect("daemon init");
+    println!(
+        "🧠 Bugs Daemon {external} (internal {internal}) — http://127.0.0.1:{port}",
+        external = VERSION_EXTERNAL,
+        internal = VERSION_INTERNAL
+    );
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}"))
+        .await
+        .expect("daemon init");
     axum::serve(listener, app).await.expect("daemon init");
 }
 
@@ -98,35 +113,66 @@ async fn skills_list(State(s): State<Arc<AppState>>) -> impl IntoResponse {
     }))
 }
 
-fn dirs_home() -> Option<std::path::PathBuf> {
-    std::env::var("HOME").ok().map(std::path::PathBuf::from)
-}
-
 const VERSION_EXTERNAL: &str = "2026.05.27-dev-1";
 const VERSION_INTERNAL: &str = "1-dev-0-1";
 
 fn auto_register(reg: &mut ProviderRegistry) {
-    if let Ok(k) = env("OPENAI_API_KEY") { reg.register(Box::new(OpenAiProvider::new("openai", b("OPENAI_BASE_URL", "https://api.openai.com/v1"), k))); }
-    if let Ok(k) = env("ANTHROPIC_API_KEY") { reg.register(Box::new(AnthropicProvider::new("anthropic", b("ANTHROPIC_BASE_URL", "https://api.anthropic.com"), k))); }
-    if let Ok(k) = env("DEEPSEEK_API_KEY") { reg.register(Box::new(DeepSeekProvider::new_openai(k.clone()))); reg.register(Box::new(DeepSeekProvider::new_anthropic(k))); }
-    if let Ok(k) = env("GROQ_API_KEY") { reg.register(Box::new(OpenAiProvider::new("groq", "https://api.groq.com/openai/v1", k))); }
-    if let Ok(k) = env("MOONSHOT_API_KEY") { reg.register(Box::new(MoonshotProvider::new(k))); }
-    if let Ok(k) = env("ZHIPU_API_KEY") { reg.register(Box::new(ZhipuProvider::new(k))); }
+    if let Ok(k) = env("OPENAI_API_KEY") {
+        reg.register(Box::new(OpenAiProvider::new(
+            "openai",
+            b("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            k,
+        )));
+    }
+    if let Ok(k) = env("ANTHROPIC_API_KEY") {
+        reg.register(Box::new(AnthropicProvider::new(
+            "anthropic",
+            b("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+            k,
+        )));
+    }
+    if let Ok(k) = env("DEEPSEEK_API_KEY") {
+        reg.register(Box::new(DeepSeekProvider::new_openai(k.clone())));
+        reg.register(Box::new(DeepSeekProvider::new_anthropic(k)));
+    }
+    if let Ok(k) = env("GROQ_API_KEY") {
+        reg.register(Box::new(OpenAiProvider::new(
+            "groq",
+            "https://api.groq.com/openai/v1",
+            k,
+        )));
+    }
+    if let Ok(k) = env("MOONSHOT_API_KEY") {
+        reg.register(Box::new(MoonshotProvider::new(k)));
+    }
+    if let Ok(k) = env("ZHIPU_API_KEY") {
+        reg.register(Box::new(ZhipuProvider::new(k)));
+    }
     let k = env("OLLAMA_API_KEY").unwrap_or_default();
-    reg.register(Box::new(OpenAiProvider::new("ollama", "http://localhost:11434/v1", k)));
+    reg.register(Box::new(OpenAiProvider::new(
+        "ollama",
+        "http://localhost:11434/v1",
+        k,
+    )));
 }
 
 fn env_port() -> Option<u16> {
     std::env::var("BUGS_PORT").ok().and_then(|p| p.parse().ok())
 }
 
-fn env(k: &str) -> Result<String, std::env::VarError> { std::env::var(k) }
-fn b(k: &str, d: &str) -> String { std::env::var(k).unwrap_or_else(|_| d.into()) }
+fn env(k: &str) -> Result<String, std::env::VarError> {
+    std::env::var(k)
+}
+fn b(k: &str, d: &str) -> String {
+    std::env::var(k).unwrap_or_else(|_| d.into())
+}
 
 // ── API 端点 ──
 
 // ... (endpoints unchanged)
-async fn health() -> impl IntoResponse { Json(serde_json::json!({"status":"ok","version":VERSION_EXTERNAL})) }
+async fn health() -> impl IntoResponse {
+    Json(serde_json::json!({"status":"ok","version":VERSION_EXTERNAL}))
+}
 
 async fn status(State(_s): State<Arc<AppState>>) -> impl IntoResponse {
     Json(serde_json::json!({"status":"ok","providers":_s.registry.list(),"uptime":"running"}))
@@ -164,16 +210,23 @@ async fn current_scene(State(s): State<Arc<AppState>>) -> impl IntoResponse {
 }
 
 #[derive(Deserialize)]
-struct SwitchBody { name: String }
+struct SwitchBody {
+    name: String,
+}
 
-async fn switch_scene(State(s): State<Arc<AppState>>, Json(body): Json<SwitchBody>) -> impl IntoResponse {
+async fn switch_scene(
+    State(s): State<Arc<AppState>>,
+    Json(body): Json<SwitchBody>,
+) -> impl IntoResponse {
     match s.scenes.switch_by_name(&body.name, &s.memory) {
         Some(id) => Json(serde_json::json!({"switched":id,"name":body.name})),
         None => Json(serde_json::json!({"error":format!("场景不存在: {}",body.name)})),
     }
 }
 
-async fn memory_search() -> impl IntoResponse { Json(serde_json::json!({"memories":[]})) }
+async fn memory_search() -> impl IntoResponse {
+    Json(serde_json::json!({"memories":[]}))
+}
 
 async fn config() -> impl IntoResponse {
     let cfg = bugs_core::types::BugsConfig::default();
@@ -201,40 +254,77 @@ async fn meditate_status() -> impl IntoResponse {
 
 async fn meditate_pending(State(s): State<Arc<AppState>>) -> impl IntoResponse {
     let report = s.meditation.meditate(&s.memory, &s.trust);
-    Json(serde_json::json!({"pending":report.pending.iter().map(|m|serde_json::json!({
+    Json(
+        serde_json::json!({"pending":report.pending.iter().map(|m|serde_json::json!({
         "category":format!("{:?}",m.category),"strength":m.strength_cached,"scene_id":m.scene_id,
-    })).collect::<Vec<_>>(),"count":report.pending.len()}))
+    })).collect::<Vec<_>>(),"count":report.pending.len()}),
+    )
 }
 
 #[derive(Deserialize)]
-struct ConfirmBody { index: usize, confirmed: bool }
+struct ConfirmBody {
+    index: usize,
+    confirmed: bool,
+}
 
-async fn meditate_confirm(State(s): State<Arc<AppState>>, Json(body): Json<ConfirmBody>) -> impl IntoResponse {
+async fn meditate_confirm(
+    State(s): State<Arc<AppState>>,
+    Json(body): Json<ConfirmBody>,
+) -> impl IntoResponse {
     let mut all = s.meditation.collect_all(&s.memory);
     if body.index < all.len() {
-        if body.confirmed { s.trust.user_confirm(&mut all[body.index], 0); }
-        else { s.trust.disprove(&mut all[body.index]); }
+        if body.confirmed {
+            s.trust.user_confirm(&mut all[body.index], 0);
+        } else {
+            s.trust.disprove(&mut all[body.index]);
+        }
         s.meditation.write_back(&s.memory, all);
     }
     Json(serde_json::json!({"status":"ok"}))
 }
 
 #[derive(Deserialize)]
-struct ChatBody { model: Option<String>, messages: Vec<ApiMsg> }
+struct ChatBody {
+    model: Option<String>,
+    messages: Vec<ApiMsg>,
+}
 #[derive(Deserialize, Clone)]
-struct ApiMsg { role: String, content: String }
+struct ApiMsg {
+    role: String,
+    content: String,
+}
 
 async fn chat(State(s): State<Arc<AppState>>, Json(body): Json<ChatBody>) -> impl IntoResponse {
     let model = body.model.unwrap_or_else(|| "gpt-4o-mini".into());
     let provider = match s.registry.find(&model) {
         Some(p) => p,
-        None => return Json(serde_json::json!({"error":format!("找不到模型: {model}")})).into_response(),
+        None => {
+            return Json(serde_json::json!({"error":format!("找不到模型: {model}")}))
+                .into_response()
+        }
     };
-    let msgs: Vec<Message> = body.messages.iter().map(|m| Message {
-        role: match m.role.as_str() {"assistant"=>Role::Assistant,"system"=>Role::System,_=>Role::User},
-        content: m.content.clone(),
-    }).collect();
-    match provider.chat(ChatRequest { model, messages:msgs, temperature:Some(0.7), max_tokens:Some(4096), ..Default::default() }).await {
+    let msgs: Vec<Message> = body
+        .messages
+        .iter()
+        .map(|m| Message {
+            role: match m.role.as_str() {
+                "assistant" => Role::Assistant,
+                "system" => Role::System,
+                _ => Role::User,
+            },
+            content: m.content.clone(),
+        })
+        .collect();
+    match provider
+        .chat(ChatRequest {
+            model,
+            messages: msgs,
+            temperature: Some(0.7),
+            max_tokens: Some(4096),
+            ..Default::default()
+        })
+        .await
+    {
         Ok(resp) => Json(serde_json::json!({"content":resp.content})).into_response(),
         Err(e) => Json(serde_json::json!({"error":e.to_string()})).into_response(),
     }

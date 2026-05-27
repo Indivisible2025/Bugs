@@ -4,7 +4,7 @@ use sha1::{Digest, Sha1};
 
 /// 验证微信回调签名
 pub fn verify_signature(token: &str, timestamp: &str, nonce: &str, signature: &str) -> bool {
-    let mut items = vec![token, timestamp, nonce];
+    let mut items = [token, timestamp, nonce];
     items.sort();
     let sorted = items.concat();
     let mut hasher = Sha1::new();
@@ -20,7 +20,9 @@ mod tests {
         let mut items = vec!["test", "1409304348", "xxxxxx"];
         items.sort();
         let sorted = items.concat();
-        let mut h = Sha1::new(); h.update(sorted.as_bytes()); let sig = hex::encode(h.finalize());
+        let mut h = Sha1::new();
+        h.update(sorted.as_bytes());
+        let sig = hex::encode(h.finalize());
         assert!(verify_signature("test", "1409304348", "xxxxxx", &sig));
     }
 }

@@ -1,1 +1,3 @@
-fn main() { println!("Bugs Web"); }
+fn main() {
+    println!("Bugs Web");
+}

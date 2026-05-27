@@ -39,4 +39,8 @@ impl CronScheduler {
     }
 }
 
-impl Default for CronScheduler { fn default() -> Self { Self::new() } }
+impl Default for CronScheduler {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "bugs"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "bugs-core",
  "bugs-models",
@@ -681,7 +681,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-api"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "axum",
  "bugs-core",
@@ -694,7 +694,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-browser"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "async-trait",
  "bugs-core",
@@ -710,7 +710,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-core"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-gui"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "eframe",
  "egui",
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-models"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "async-trait",
  "bugs-core",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-tui"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "crossterm",
  "ratatui",
@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-web"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "axum",
  "reqwest",
@@ -787,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "bugs-weixin"
-version = "0.1.0-dev.1"
+version = "2026.5.27-1-1--dev-overmind-1"
 dependencies = [
  "async-trait",
  "axum",

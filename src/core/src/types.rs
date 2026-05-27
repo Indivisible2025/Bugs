@@ -21,7 +21,9 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn description(&self) -> &str { &self.description }
+    pub fn description(&self) -> &str {
+        &self.description
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -298,11 +300,19 @@ impl Default for BugsConfig {
                 scene_full_max_mb: 50,
             },
             network: NetworkConfig {
-                local: LocalNet { bind: "127.0.0.1".into(), port: 8742, auto_trust: true },
+                local: LocalNet {
+                    bind: "127.0.0.1".into(),
+                    port: 8742,
+                    auto_trust: true,
+                },
                 remote: RemoteNet {
-                    enabled: false, bind: "0.0.0.0".into(), port: 8742,
-                    domain: String::new(), auth_mode: "token".into(),
-                    tls_cert: String::new(), tls_key: String::new(),
+                    enabled: false,
+                    bind: "0.0.0.0".into(),
+                    port: 8742,
+                    domain: String::new(),
+                    auth_mode: "token".into(),
+                    tls_cert: String::new(),
+                    tls_key: String::new(),
                 },
             },
             scenes: SceneSettings {

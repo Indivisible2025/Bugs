@@ -2,7 +2,6 @@
 //! 支持 Stdio 和 HTTP 传输
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 pub struct McpServer {
     pub name: &'static str,
@@ -19,10 +18,16 @@ pub struct McpTool {
 
 impl McpServer {
     pub fn new() -> Self {
-        Self { name: "bugs", version: "0.1.0", tools: vec![] }
+        Self {
+            name: "bugs",
+            version: "0.1.0",
+            tools: vec![],
+        }
     }
 
-    pub fn add_tool(&mut self, tool: McpTool) { self.tools.push(tool); }
+    pub fn add_tool(&mut self, tool: McpTool) {
+        self.tools.push(tool);
+    }
 
     pub fn handle_jsonrpc(&self, body: &str) -> String {
         let req: serde_json::Value = match serde_json::from_str(body) {
@@ -43,22 +48,32 @@ impl McpServer {
     }
 
     fn json(&self, id: &serde_json::Value, result: serde_json::Value) -> String {
-        serde_json::to_string(&serde_json::json!({"jsonrpc":"2.0","id":id,"result":result})).unwrap_or_default()
+        serde_json::to_string(&serde_json::json!({"jsonrpc":"2.0","id":id,"result":result}))
+            .unwrap_or_default()
     }
 
     fn error(&self, code: i32, msg: String) -> String {
-        serde_json::to_string(&serde_json::json!({"jsonrpc":"2.0","error":{"code":code,"message":msg}})).unwrap_or_default()
+        serde_json::to_string(
+            &serde_json::json!({"jsonrpc":"2.0","error":{"code":code,"message":msg}}),
+        )
+        .unwrap_or_default()
     }
 }
 
-impl Default for McpServer { fn default() -> Self { Self::new() } }
+impl Default for McpServer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub async fn start_stdio() {
     let server = McpServer::new();
     let mut buf = String::new();
     loop {
         buf.clear();
-        if std::io::stdin().read_line(&mut buf).is_err() { break; }
+        if std::io::stdin().read_line(&mut buf).is_err() {
+            break;
+        }
         let resp = server.handle_jsonrpc(&buf);
         println!("{resp}");
     }

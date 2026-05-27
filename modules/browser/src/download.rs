@@ -16,26 +16,41 @@ const CDN_MIRROR: &str = "https://registry.npmmirror.com/-/binary/chrome-for-tes
 
 impl ChromiumBundle {
     pub fn new() -> Self {
-        let home = std::env::var("HOME").ok().map(PathBuf::from)
+        let home = std::env::var("HOME")
+            .ok()
+            .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("."));
-        Self { cache_dir: home.join(".bugs/browser/chromium") }
+        Self {
+            cache_dir: home.join(".bugs/browser/chromium"),
+        }
     }
 
-    pub fn is_ready(&self) -> bool { self.executable_path().exists() }
+    pub fn is_ready(&self) -> bool {
+        self.executable_path().exists()
+    }
 
     pub fn executable_path(&self) -> PathBuf {
         #[cfg(target_os = "linux")]
-        { self.cache_dir.join("chrome-linux64/chrome") }
+        {
+            self.cache_dir.join("chrome-linux64/chrome")
+        }
         #[cfg(target_os = "macos")]
-        { self.cache_dir.join("chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing") }
+        {
+            self.cache_dir.join("chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing")
+        }
         #[cfg(target_os = "windows")]
-        { self.cache_dir.join("chrome-win64/chrome.exe") }
+        {
+            self.cache_dir.join("chrome-win64/chrome.exe")
+        }
     }
 
     /// 模块安装时调用——从 Google 官方下载完整 Chromium（支持无头+有头双池）
     pub fn bundle(&self) -> Result<PathBuf, ModuleError> {
         if self.is_ready() {
-            println!("  ✅ Chromium 已内置（双池可用）: {}", self.executable_path().display());
+            println!(
+                "  ✅ Chromium 已内置（双池可用）: {}",
+                self.executable_path().display()
+            );
             return Ok(self.executable_path());
         }
 
@@ -52,7 +67,7 @@ impl ChromiumBundle {
         for (i, url) in urls.iter().enumerate() {
             let source = if i == 0 { "Google" } else { "中国镜像" };
             println!("  📦 正在内置 Chromium (~130MB, Headless+Headful双池) [来源: {source}]...");
-            match self.download_and_extract(url, &zip_name) {
+            match self.download_and_extract(url, zip_name) {
                 Ok(path) => return Ok(path),
                 Err(e) => last_err = format!("{e}"),
             }
@@ -62,25 +77,48 @@ impl ChromiumBundle {
     }
 
     fn platform_info(&self) -> (&str, &str) {
-        #[cfg(target_os = "linux")]   { ("linux64", "chrome-linux64.zip") }
-        #[cfg(target_os = "macos")]   { ("mac-x64", "chrome-mac-x64.zip") }
-        #[cfg(target_os = "windows")] { ("win64", "chrome-win64.zip") }
+        #[cfg(target_os = "linux")]
+        {
+            ("linux64", "chrome-linux64.zip")
+        }
+        #[cfg(target_os = "macos")]
+        {
+            ("mac-x64", "chrome-mac-x64.zip")
+        }
+        #[cfg(target_os = "windows")]
+        {
+            ("win64", "chrome-win64.zip")
+        }
     }
 
     fn download_and_extract(&self, url: &str, zip_name: &str) -> Result<PathBuf, ModuleError> {
         let zip_path = self.cache_dir.join(zip_name);
-        let resp = reqwest::blocking::get(url).map_err(|e| ModuleError::InstallFailed(format!("连接失败: {e}")))?;
-        if !resp.status().is_success() { return Err(ModuleError::InstallFailed(format!("HTTP {}", resp.status()))); }
-        let bytes = resp.bytes().map_err(|e| ModuleError::InstallFailed(format!("读取: {e}")))?;
+        let resp = reqwest::blocking::get(url)
+            .map_err(|e| ModuleError::InstallFailed(format!("连接失败: {e}")))?;
+        if !resp.status().is_success() {
+            return Err(ModuleError::InstallFailed(format!(
+                "HTTP {}",
+                resp.status()
+            )));
+        }
+        let bytes = resp
+            .bytes()
+            .map_err(|e| ModuleError::InstallFailed(format!("读取: {e}")))?;
         println!("  ✓ 下载完成: {} MB", bytes.len() / 1024 / 1024);
-        std::fs::write(&zip_path, &bytes).map_err(|e| ModuleError::InstallFailed(format!("写入: {e}")))?;
-        let file = std::fs::File::open(&zip_path).map_err(|e| ModuleError::InstallFailed(format!("打开: {e}")))?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| ModuleError::InstallFailed(format!("解压: {e}")))?;
-        archive.extract(&self.cache_dir).map_err(|e| ModuleError::InstallFailed(format!("解压: {e}")))?;
+        std::fs::write(&zip_path, &bytes)
+            .map_err(|e| ModuleError::InstallFailed(format!("写入: {e}")))?;
+        let file = std::fs::File::open(&zip_path)
+            .map_err(|e| ModuleError::InstallFailed(format!("打开: {e}")))?;
+        let mut archive = zip::ZipArchive::new(file)
+            .map_err(|e| ModuleError::InstallFailed(format!("解压: {e}")))?;
+        archive
+            .extract(&self.cache_dir)
+            .map_err(|e| ModuleError::InstallFailed(format!("解压: {e}")))?;
         let _ = std::fs::remove_file(&zip_path);
         let path = self.executable_path();
         if path.exists() {
-            #[cfg(target_os = "linux")] {
+            #[cfg(target_os = "linux")]
+            {
                 use std::os::unix::fs::PermissionsExt;
                 if let Ok(meta) = std::fs::metadata(&path) {
                     let mut perm = meta.permissions();
@@ -94,4 +132,3 @@ impl ChromiumBundle {
         }
     }
 }
-

@@ -2,7 +2,6 @@
 //! 通过 JSON-RPC 与语言服务器通信，提供代码级上下文
 
 use serde_json::Value;
-use std::collections::HashMap;
 use std::io::{BufRead, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Mutex;
@@ -66,11 +65,14 @@ impl LspClient {
         *self.process.lock().unwrap() = Some(child);
 
         // 发送 initialize 请求
-        let result = self.send_request("initialize", serde_json::json!({
-            "processId": std::process::id(),
-            "rootUri": root_uri,
-            "capabilities": {}
-        }))?;
+        let result = self.send_request(
+            "initialize",
+            serde_json::json!({
+                "processId": std::process::id(),
+                "rootUri": root_uri,
+                "capabilities": {}
+            }),
+        )?;
 
         // 发送 initialized 通知
         self.send_notification("initialized", serde_json::json!({}));
@@ -80,29 +82,43 @@ impl LspClient {
 
     /// 打开文件
     pub fn did_open(&self, path: &str, language: &str, text: &str) -> Result<(), String> {
-        self.send_notification("textDocument/didOpen", serde_json::json!({
-            "textDocument": {
-                "uri": format!("file://{path}"),
-                "languageId": language,
-                "version": 1,
-                "text": text,
-            }
-        }));
+        self.send_notification(
+            "textDocument/didOpen",
+            serde_json::json!({
+                "textDocument": {
+                    "uri": format!("file://{path}"),
+                    "languageId": language,
+                    "version": 1,
+                    "text": text,
+                }
+            }),
+        );
         Ok(())
     }
 
     /// 获取诊断信息（不等待推送，直接请求）
     pub fn diagnostics(&self, path: &str) -> Result<Vec<LspDiagnostic>, String> {
-        let result = self.send_request("textDocument/diagnostic", serde_json::json!({
-            "textDocument": { "uri": format!("file://{path}") }
-        }))?;
+        let result = self.send_request(
+            "textDocument/diagnostic",
+            serde_json::json!({
+                "textDocument": { "uri": format!("file://{path}") }
+            }),
+        )?;
         let mut diags = Vec::new();
         if let Some(items) = result["diagnostics"].as_array() {
             for d in items {
                 diags.push(LspDiagnostic {
                     file_path: path.into(),
                     message: d["message"].as_str().unwrap_or("?").to_string(),
-                    severity: d["severity"].as_i64().map(|s| match s {1=>"error",2=>"warn",_=>"info"}).unwrap_or("info").to_string(),
+                    severity: d["severity"]
+                        .as_i64()
+                        .map(|s| match s {
+                            1 => "error",
+                            2 => "warn",
+                            _ => "info",
+                        })
+                        .unwrap_or("info")
+                        .to_string(),
                     line: d["range"]["start"]["line"].as_i64().unwrap_or(0) as u32 + 1,
                 });
             }
@@ -111,31 +127,53 @@ impl LspClient {
     }
 
     /// 跳转到定义
-    pub fn go_to_definition(&self, path: &str, line: u32, col: u32) -> Result<Vec<LspSymbol>, String> {
-        let result = self.send_request("textDocument/definition", serde_json::json!({
-            "textDocument": { "uri": format!("file://{path}") },
-            "position": { "line": line, "character": col }
-        }))?;
+    pub fn go_to_definition(
+        &self,
+        path: &str,
+        line: u32,
+        col: u32,
+    ) -> Result<Vec<LspSymbol>, String> {
+        let result = self.send_request(
+            "textDocument/definition",
+            serde_json::json!({
+                "textDocument": { "uri": format!("file://{path}") },
+                "position": { "line": line, "character": col }
+            }),
+        )?;
         self.parse_locations(result)
     }
 
     /// 查找引用
-    pub fn find_references(&self, path: &str, line: u32, col: u32) -> Result<Vec<LspSymbol>, String> {
-        let result = self.send_request("textDocument/references", serde_json::json!({
-            "textDocument": { "uri": format!("file://{path}") },
-            "position": { "line": line, "character": col },
-            "context": { "includeDeclaration": true }
-        }))?;
+    pub fn find_references(
+        &self,
+        path: &str,
+        line: u32,
+        col: u32,
+    ) -> Result<Vec<LspSymbol>, String> {
+        let result = self.send_request(
+            "textDocument/references",
+            serde_json::json!({
+                "textDocument": { "uri": format!("file://{path}") },
+                "position": { "line": line, "character": col },
+                "context": { "includeDeclaration": true }
+            }),
+        )?;
         self.parse_locations(result)
     }
 
     /// 按下标记 — 获取当前光标位置的语义上下文
     pub fn hover(&self, path: &str, line: u32, col: u32) -> Result<String, String> {
-        let result = self.send_request("textDocument/hover", serde_json::json!({
-            "textDocument": { "uri": format!("file://{path}") },
-            "position": { "line": line, "character": col }
-        }))?;
-        Ok(result["contents"]["value"].as_str().unwrap_or("").to_string())
+        let result = self.send_request(
+            "textDocument/hover",
+            serde_json::json!({
+                "textDocument": { "uri": format!("file://{path}") },
+                "position": { "line": line, "character": col }
+            }),
+        )?;
+        Ok(result["contents"]["value"]
+            .as_str()
+            .unwrap_or("")
+            .to_string())
     }
 
     /// 关闭语言服务器
@@ -143,13 +181,18 @@ impl LspClient {
         let _ = self.send_request("shutdown", serde_json::json!(null));
         self.send_notification("exit", serde_json::json!({}));
         if let Ok(mut proc) = self.process.lock() {
-            if let Some(ref mut p) = *proc { let _ = p.wait(); }
+            if let Some(ref mut p) = *proc {
+                let _ = p.wait();
+            }
         }
     }
 
     // ── JSON-RPC 通信 ──
 
-    fn next_id(&self) -> u64 { self.request_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }
+    fn next_id(&self) -> u64 {
+        self.request_id
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
 
     fn send_request(&self, method: &str, params: Value) -> Result<Value, String> {
         let id = self.next_id();
@@ -176,13 +219,17 @@ impl LspClient {
     }
 
     fn read_response(&self, expected_id: u64) -> Result<Value, String> {
-        let mut buf = String::new();
+        let buf = String::new();
         let mut stdout = self.stdout.lock().unwrap();
         if let Some(ref mut r) = *stdout {
             // 读取 Content-Length header
             let mut header = String::new();
             r.read_line(&mut header).map_err(|e| e.to_string())?;
-            let len: usize = header.trim_start_matches("Content-Length: ").trim().parse().unwrap_or(0);
+            let len: usize = header
+                .trim_start_matches("Content-Length: ")
+                .trim()
+                .parse()
+                .unwrap_or(0);
             r.read_line(&mut header).map_err(|e| e.to_string())?; // 空行
             let mut content = vec![0u8; len];
             use std::io::Read;
@@ -192,8 +239,11 @@ impl LspClient {
                 return Err(err["message"].as_str().unwrap_or("LSP 错误").to_string());
             }
             // 结果可能是单个响应或批量响应
-            if let Some(result) = resp.get("result") { Ok(result.clone()) }
-            else { Ok(serde_json::json!(null)) }
+            if let Some(result) = resp.get("result") {
+                Ok(result.clone())
+            } else {
+                Ok(serde_json::json!(null))
+            }
         } else {
             Err("stdout 不可用".into())
         }
@@ -220,7 +270,9 @@ impl LspClient {
 }
 
 impl Drop for LspClient {
-    fn drop(&mut self) { self.shutdown(); }
+    fn drop(&mut self) {
+        self.shutdown();
+    }
 }
 
 #[cfg(test)]

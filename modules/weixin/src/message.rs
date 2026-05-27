@@ -37,10 +37,14 @@ pub struct WxReply {
 impl WxReply {
     pub fn text(from: String, to: String, content: String) -> Self {
         Self {
-            to_user: to, from_user: from,
+            to_user: to,
+            from_user: from,
             create_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
-            msg_type: "text".into(), content,
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            msg_type: "text".into(),
+            content,
         }
     }
     pub fn to_xml(&self) -> String {

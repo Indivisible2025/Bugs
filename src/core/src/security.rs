@@ -1,4 +1,3 @@
-
 /// 安全模块——认证、授权、Token 管理
 pub struct Security {
     token: String,

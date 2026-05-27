@@ -43,9 +43,7 @@ fn dirs_next() -> Option<PathBuf> {
     std::env::var("BUGS_HOME")
         .ok()
         .map(PathBuf::from)
-        .or_else(|| {
-            dirs::home_dir().map(|h| h.join(".bugs"))
-        })
+        .or_else(|| dirs::home_dir().map(|h| h.join(".bugs")))
 }
 
 /// 最小化的 dirs 实现——不引入 dirs crate。
@@ -54,9 +52,7 @@ mod dirs {
 
     pub fn home_dir() -> Option<PathBuf> {
         std::env::var_os("HOME")
-            .or_else(|| {
-                std::env::var_os("USERPROFILE")
-            })
+            .or_else(|| std::env::var_os("USERPROFILE"))
             .map(PathBuf::from)
     }
 }
