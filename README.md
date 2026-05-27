@@ -13,9 +13,38 @@ Bugs 是一个个人 AI Agent 运行时，名字取自《星船伞兵》中 Arac
 
 ## 安装
 
+### 方式一：GitHub（推荐）
+
+```bash
+# 稳定版（main 分支）
+curl -fsSL https://raw.githubusercontent.com/Indivisible2025/Bugs/main/scripts/install.sh | sh
+
+# 开发版（dev 分支）
+curl -fsSL https://raw.githubusercontent.com/Indivisible2025/Bugs/main/scripts/install.sh | BUGS_CHANNEL=dev sh
+
+# 测试版（beta 分支）
+curl -fsSL https://raw.githubusercontent.com/Indivisible2025/Bugs/main/scripts/install.sh | BUGS_CHANNEL=beta sh
+```
+
+| 频道 | 分支 | 说明 |
+|------|------|------|
+| `stable`（默认） | `main` | 生产就绪，经过充分测试 |
+| `beta` | `beta` | 新功能预览，基本稳定 |
+| `dev` | `dev` | 最新代码，可能不稳定 |
+
+### 方式二：镜像加速（暂不可用，网站未部署）
+
 ```bash
 curl -fsSL https://bugs.neaneu.top/install.sh | sh
 ```
+
+### 指定版本
+
+```bash
+curl -fsSL .../install.sh | BUGS_VERSION=v0.1.0 sh
+```
+
+---
 
 `bugs` 是唯一的入口命令：
 
