@@ -2,14 +2,92 @@ name: CI
 
 on:
   push:
+    branches: [main, dev, beta]
   pull_request:
+    branches: [main, dev, beta]
+
+env:
+  CARGO_TERM_COLOR: always
+  # 排除需要 GUI 系统依赖的 crate
+  EXCLUDE: "--exclude bugs-gui --exclude bugs-web"
 
 jobs:
-  build:
+  # ── 格式检查 ──────────────────────────────────────────
+  fmt:
+    name: Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cargo build --workspace --exclude bugs-gui --exclude bugs-web
-      - run: cargo test --workspace --exclude bugs-gui --exclude bugs-web
-      - run: cargo build --release --workspace --exclude bugs-gui --exclude bugs-web
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  # ── Clippy 静态检查 ───────────────────────────────────
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+      - run: cargo clippy --workspace $EXCLUDE -- -D warnings
+
+  # ── 构建 + 测试矩阵 ──────────────────────────────────
+  test:
+    name: Test (${{ matrix.os }}, ${{ matrix.rust }})
+    needs: [fmt, clippy]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        rust: [stable]
+        include:
+          - os: ubuntu-latest
+            rust: "1.95"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Build
+        run: cargo build --workspace $EXCLUDE
+
+      - name: Test
+        run: cargo test --workspace $EXCLUDE
+
+      - name: Doc test
+        run: cargo test --doc --workspace $EXCLUDE
+
+  # ── Release 构建验证（仅 tag 推送时） ─────────────────
+  build-release:
+    name: Release Build
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Build release
+        run: cargo build --release --workspace $EXCLUDE
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp target/release/bugs          release-artifacts/
+          cp target/release/bugs-daemon   release-artifacts/
+          cp target/release/bugs-tui      release-artifacts/
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

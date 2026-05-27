@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 license = "AGPL-3.0-only"
 
+[[bin]]
+name = "bugs-daemon"
+path = "src/main.rs"
+
 [dependencies]
 bugs-core = { path = "../core" }
 bugs-models = { path = "../../modules/models" }
