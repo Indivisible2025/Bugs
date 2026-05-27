@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "2026.05.27-dev-1"
+version = "2026.05.27-1-1--dev-overmind-1"
 edition = "2021"
 # License: dual-license structure
 #   src/core, src/api, src/cli → AGPL-3.0-only
